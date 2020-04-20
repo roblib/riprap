@@ -140,8 +140,6 @@ class PluginFetchMultifileResourceListFromDrupal extends AbstractFetchResourceLi
                 see the Riprap log for more detail.");
       exit(1);
     }
-    $output->write("Content type is " . $this->drupal_content_types[0] . "\n");
-
     $ping_node_list_from_jsonapi_json = (string) $ping_response->getBody();
     $ping_node_list_from_jsonapi = json_decode($ping_node_list_from_jsonapi_json, TRUE);
     // Adjust some variables bases on this ping.
@@ -184,7 +182,6 @@ class PluginFetchMultifileResourceListFromDrupal extends AbstractFetchResourceLi
       }
     }
     // $output->writeln(print_r($whole_node_list['data']) . "\n");
-    $output->writeln(count($whole_node_list['data']) . "\n");
     if (count($whole_node_list['data']) == 0) {
       if ($this->logger) {
         $this->logger->info(
@@ -236,16 +233,17 @@ class PluginFetchMultifileResourceListFromDrupal extends AbstractFetchResourceLi
           // the resource ID / URL cannot be found. (But, http responses are already logged in
           // getFedoraUrl() so maybe we don't need to log here?)
           if (isset($media['field_media_image'])) {
-            $fedora_url = $this->getFedoraUrl($media['field_media_image'][0]['target_uuid']);
-            if (strlen($fedora_url)) {
-              $resource_record_object = new \stdClass;
-              $resource_record_object->resource_id = $fedora_url;
-              $resource_record_object->last_modified_timestamp = $revised;
-              $output_resource_records[] = $resource_record_object;
-            }
+            $target_file = $media['field_media_image'];
           }
-          else {
-            $fedora_url = $this->getFedoraUrl($media['field_media_file'][0]['target_uuid']);
+          if (isset($media['field_media_file'])) {
+            $target_file = $media['field_media_file'];
+          }
+          if (isset($media['field_media_video_file'])) {
+            $target_file = $media['field_media_video_file'];
+          }
+
+          if (isset($media['field_media_image'])) {
+            $fedora_url = $this->getFedoraUrl($target_file[0]['target_uuid']);
             if (strlen($fedora_url)) {
               $resource_record_object = new \stdClass;
               $resource_record_object->resource_id = $fedora_url;
