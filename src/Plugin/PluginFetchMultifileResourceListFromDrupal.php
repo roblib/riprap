@@ -140,6 +140,7 @@ class PluginFetchMultifileResourceListFromDrupal extends AbstractFetchResourceLi
                 see the Riprap log for more detail.");
       exit(1);
     }
+
     $ping_node_list_from_jsonapi_json = (string) $ping_response->getBody();
     $ping_node_list_from_jsonapi = json_decode($ping_node_list_from_jsonapi_json, TRUE);
     // Adjust some variables bases on this ping.
@@ -181,7 +182,7 @@ class PluginFetchMultifileResourceListFromDrupal extends AbstractFetchResourceLi
         $this->setPageOffset($page_offset, $node_list_from_jsonapi['links']);
       }
     }
-    // $output->writeln(print_r($whole_node_list['data']) . "\n");
+
     if (count($whole_node_list['data']) == 0) {
       if ($this->logger) {
         $this->logger->info(
@@ -228,51 +229,39 @@ class PluginFetchMultifileResourceListFromDrupal extends AbstractFetchResourceLi
         // Get the timestamp of the current revision.
         // Will be in ISO8601 format.
         $revised = $media['revision_created'][0]['value'];
+        if (isset($media['field_media_image'])) {
+          $target_file = $media['field_media_image'];
+        }
+        if (isset($media['field_media_file'])) {
+          $target_file = $media['field_media_file'];
+        }
+        if (isset($media['field_media_video_file'])) {
+          $target_file = $media['field_media_video_file'];
+        }
         if ($this->use_fedora_urls) {
           // @todo: getFedoraUrl() returns false on failure, so build in logic here to log that
           // the resource ID / URL cannot be found. (But, http responses are already logged in
           // getFedoraUrl() so maybe we don't need to log here?)
-          if (isset($media['field_media_image'])) {
-            $target_file = $media['field_media_image'];
-          }
-          if (isset($media['field_media_file'])) {
-            $target_file = $media['field_media_file'];
-          }
-          if (isset($media['field_media_video_file'])) {
-            $target_file = $media['field_media_video_file'];
+          $fedora_url = $this->getFedoraUrl($target_file[0]['target_uuid']);
+          if (strlen($fedora_url)) {
+            $resource_record_object = new \stdClass;
+            $resource_record_object->resource_id = $fedora_url;
+            $resource_record_object->last_modified_timestamp = $revised;
+            $output_resource_records[] = $resource_record_object;
           }
 
-          if (isset($media['field_media_image'])) {
-            $fedora_url = $this->getFedoraUrl($target_file[0]['target_uuid']);
-            if (strlen($fedora_url)) {
-              $resource_record_object = new \stdClass;
-              $resource_record_object->resource_id = $fedora_url;
-              $resource_record_object->last_modified_timestamp = $revised;
-              $output_resource_records[] = $resource_record_object;
-            }
-          }
         }
         else {
-          if (isset($media['field_media_image'])) {
-            if (strlen($media['field_media_image'][0]['url'])) {
-              $resource_record_object = new \stdClass;
-              $resource_record_object->resource_id = $media['field_media_image'][0]['url'];
-              $resource_record_object->last_modified_timestamp = $revised;
-              $output_resource_records[] = $resource_record_object;
-            }
-          }
-          else {
-            if (strlen($media['field_media_file'][0]['url'])) {
-              $resource_record_object = new \stdClass;
-              $resource_record_object->resource_id = $media['field_media_file'][0]['url'];
-              $resource_record_object->last_modified_timestamp = $revised;
-              $output_resource_records[] = $resource_record_object;
-            }
+          if (strlen($target_file[0]['url'])) {
+            $resource_record_object = new \stdClass;
+            $resource_record_object->resource_id = $media['field_media_image'][0]['url'];
+            $resource_record_object->last_modified_timestamp = $revised;
+            $output_resource_records[] = $resource_record_object;
           }
         }
-
       }
     }
+
 
     // $this->logger is null while testing.
     if ($this->logger) {
